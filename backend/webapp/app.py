@@ -1,7 +1,7 @@
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 
-from cosmos import runDemo
+from cosmos import test_upload_json_files, run_cosmos_queries as run_queries
 
 import os
 
@@ -21,8 +21,12 @@ def index():
 @socket.on("start", namespace="/cosmos-db-nosql")
 def start(data):
     emitOutput("Current Status:\tStarting...")
-    runDemo(emitOutput)
-
+    test_upload_json_files(emitOutput)
+    
+@socket.on("run_queries", namespace="/cosmos-db-nosql")
+def run_cosmos_queries_handler(data=None):
+    emitOutput("Current Status:\tRunning queries...")
+    run_queries(emitOutput)
 
 def emitOutput(message, isCode=False):
     emit("new_message", {"message": message, "code": isCode})

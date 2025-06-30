@@ -10,7 +10,11 @@
         socket.on('connect', function() {});
         socket.on('new_message', function(data) {
             console.dir(data.message);
-            $('#console').append(`${data.message}\n`);
+            if (data.code) {
+                $('#console').append(`<code>${data.message}</code>\n`);
+            } else {
+                $('#console').append(`${data.message}\n`);
+            }
         })
 
         socket.emit('start', {});
@@ -18,7 +22,12 @@
         $('#runAgainButton').click(function() {
             $('#console').empty();
             socket.emit('start', {});
-        })
+        });
+
+        $('#runQueriesButton').click(function() {
+            $('#console').empty();
+            socket.emit('run_queries', {});
+        });
     });
 </script>
 {% endblock %}
@@ -29,9 +38,13 @@
 
 <section class="d-flex justify-content-center">
     <div class="list-group py-2">
-    <button id="runAgainButton" class="list-group-item list-group-item-action @(_runAgainEnabled ? "" : "disabled") active" aria-current="true" @onclick="RunAgain">
+    <button id="runAgainButton" class="list-group-item list-group-item-action active" aria-current="true">
         <i class="bi bi-arrow-clockwise me-2"></i>
-        Run again
+        Upload Data Again
+    </button>
+    <button id="runQueriesButton" class="list-group-item list-group-item-action">
+        <i class="bi bi-search me-2"></i>
+        Run Queries
     </button>
     <a href="https://learn.microsoft.com/azure/cosmos-db/nosql/quickstart-python#code-examples" class="list-group-item list-group-item-action" target="_blank">
         <i class="bi bi-book me-2"></i>
