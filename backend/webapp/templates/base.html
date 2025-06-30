@@ -1,17 +1,40 @@
+:\D_Backup\Github\Applications_2025\instalily-case-study\backend\webapp\templates\base.html -->
 <!doctype html>
 <html lang="en">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Azure Cosmos DB for NoSQL | Python Quickstart</title>
+        <title>Appliance Assistant | Azure OpenAI Demo</title>
         <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1/font/bootstrap-icons.min.css">
+        <style>
+            #console {
+                min-height: 250px;
+                max-height: 400px;
+                overflow-y: auto;
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+            
+            #console code {
+                color: #0066cc;
+                background-color: #f8f9fa;
+                padding: 2px;
+            }
+            
+            .ai-response {
+                background-color: #e9f5ff;
+                border-left: 4px solid #0066cc;
+                padding: 8px;
+                margin: 8px 0;
+            }
+        </style>
     </head>
     <body data-bs-theme="dark">        
         <main class="container">    
-            <h1 class="my-5 text-center">
-                Azure Cosmos DB for NoSQL | Python Quickstart
+            <h1 class="my-4 text-center">
+                <i class="bi bi-robot me-2"></i>Appliance Parts & Repair Assistant
             </h1>
             {% block content %} {% endblock %}
         </main>

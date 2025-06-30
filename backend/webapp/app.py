@@ -1,7 +1,8 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
 
-from cosmos import runDemo
+from cosmos import test_upload_json_files, run_cosmos_queries as run_queries
+from azure_openai_agent import query_azure_openai
 
 import os
 
@@ -21,8 +22,21 @@ def index():
 @socket.on("start", namespace="/cosmos-db-nosql")
 def start(data):
     emitOutput("Current Status:\tStarting...")
-    runDemo(emitOutput)
+    test_upload_json_files(emitOutput)
+    
+@socket.on("run_queries", namespace="/cosmos-db-nosql")
+def run_cosmos_queries_handler(data=None):
+    emitOutput("Current Status:\tRunning queries...")
+    run_queries(emitOutput)
 
+@socket.on("query_ai", namespace="/cosmos-db-nosql")
+def handle_ai_query(data):
+    if "query" in data and data["query"].strip():
+        emitOutput(f"AI Query: {data['query']}")
+        # Pass the emitOutput function to send updates to the client
+        result = query_azure_openai(data["query"], emitOutput)
+        if "error" in result:
+            emitOutput(f"Error: {result['error']}", isCode=True)
 
 def emitOutput(message, isCode=False):
     emit("new_message", {"message": message, "code": isCode})
