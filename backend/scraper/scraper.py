@@ -354,11 +354,12 @@ class ModelsScraper(BaseScraper):
     #     if self.verbose:
     #         logging.info("Successfully scraped %d parts from current page", len(parts))
     #     return parts
-    
     def _scrape_parts_on_page(self, part_elements):
         """Extract dishwasher parts from the page."""
         if self.verbose:
             logging.info("Extracting parts from current page...")
+        
+        import re  # Make sure to add the import at the top if it's not there
         
         parts = []
         for i, part_div in enumerate(part_elements):
@@ -370,64 +371,149 @@ class ModelsScraper(BaseScraper):
                 if part_link_elem:
                     part_data["url"] = part_link_elem.get_attribute("href")
                     
-                # Extract image URL - now looking specifically for the <img> element
+                # Extract image URL from data-srcset attribute
                 try:
-                    # Look for the img element inside the picture tag
-                    img_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__img img")
-                    if img_elem:
-                        # Get the data-src attribute which contains the actual image URL
-                        img_url = img_elem.get_attribute("data-src")
-                        if img_url:
-                            part_data["image_url"] = img_url
-                        
-                        # If data-src is not available, try the regular src attribute
-                        elif img_elem.get_attribute("src") and not img_elem.get_attribute("src").startswith("data:"):
-                            part_data["image_url"] = img_elem.get_attribute("src")
-                        
-                        # Alternative: extract WebP image from source tag if needed
-                        if not part_data.get("image_url"):
-                            webp_source = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__img picture source[type='image/webp']")
-                            if webp_source:
-                                data_srcset = webp_source.get_attribute("data-srcset")
-                                if data_srcset:
-                                    # Extract the first URL (before the comma)
-                                    first_url = data_srcset.strip().split(",")[0].strip()
+                    # First try to get the WebP image source which is typically the first source element
+                    webp_source = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__img picture source[type='image/webp']")
+                    if webp_source:
+                        # Try data-srcset first (for lazy-loaded images)
+                        data_srcset = webp_source.get_attribute("data-srcset")
+                        if data_srcset:
+                            # Extract the first URL (before the comma or space)
+                            first_url = re.split(r'[,\s]', data_srcset.strip())[0].strip()
+                            if first_url:
+                                part_data["image_url"] = first_url
+                        else:
+                            # Fall back to regular srcset if data-srcset isn't available
+                            srcset = webp_source.get_attribute("srcset")
+                            if srcset:
+                                first_url = re.split(r'[,\s]', srcset.strip())[0].strip()
+                                if first_url:
                                     part_data["image_url"] = first_url
+                    
+                    # If WebP source didn't work, try JPEG source
+                    if not part_data.get("image_url"):
+                        jpeg_source = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__img picture source[type='image/jpeg']")
+                        if jpeg_source:
+                            data_srcset = jpeg_source.get_attribute("data-srcset")
+                            if data_srcset:
+                                first_url = re.split(r'[,\s]', data_srcset.strip())[0].strip()
+                                if first_url:
+                                    part_data["image_url"] = first_url
+                            else:
+                                srcset = jpeg_source.get_attribute("srcset")
+                                if srcset:
+                                    first_url = re.split(r'[,\s]', srcset.strip())[0].strip()
+                                    if first_url:
+                                        part_data["image_url"] = first_url
+                    
+                    # Last resort: try to get from the img tag's data-src attribute
+                    if not part_data.get("image_url"):
+                        img_tag = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__img img")
+                        if img_tag:
+                            data_src = img_tag.get_attribute("data-src")
+                            if data_src and not data_src.startswith("data:"):
+                                part_data["image_url"] = data_src
+                            elif img_tag.get_attribute("src") and not img_tag.get_attribute("src").startswith("data:"):
+                                part_data["image_url"] = img_tag.get_attribute("src")
                 except Exception as e:
                     if self.verbose:
                         logging.warning(f"Could not extract image for part {i+1}: {e}")
                 
-                # Extract part name and number
+                # Extract part title and details
                 try:
-                    part_title_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__title a")
-                    if part_title_elem:
-                        part_data["name"] = part_title_elem.text.strip()
+                    title_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__detail__title span")
+                    if title_elem:
+                        part_data["name"] = title_elem.text.strip()
+                    
+                    # Extract PartSelect Number
+                    ps_number_elem = part_div.find_element(By.XPATH, ".//div[contains(text(), 'PartSelect Number')]/strong")
+                    if ps_number_elem:
+                        part_data["partselect_number"] = ps_number_elem.text.strip()
+                    
+                    # Extract Manufacturer Number
+                    mfr_number_elem = part_div.find_element(By.XPATH, ".//div[contains(text(), 'Manufacturer Part Number')]/strong")
+                    if mfr_number_elem:
+                        part_data["manufacturer_number"] = mfr_number_elem.text.strip()
+                    
+                    # Extract description text if available
+                    description_text = None
+                    try:
+                        # Look for any text after the part number divs but before the symptoms section
+                        description_div = part_div.find_element(By.XPATH, ".//div[@class='nf__part__detail']/div[contains(@class, 'nf__part__detail__part-number')]/following-sibling::text()[1]")
+                        if description_div:
+                            description_text = description_div.text.strip()
                         
-                    # Get part number from title attribute or elsewhere
-                    part_number_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__img img")
-                    if part_number_elem and part_number_elem.get_attribute("title"):
-                        title_text = part_number_elem.get_attribute("title")
-                        # Extract part number from title text format "Name – Part Number: 1234567"
-                        part_number_match = re.search(r'Part Number: ([0-9a-zA-Z]+)', title_text)
-                        if part_number_match:
-                            part_data["part_number"] = part_number_match.group(1)
+                        # If that fails, try to get any text node between the part number and symptoms/instructions
+                        if not description_text:
+                            description_div = part_div.find_element(By.XPATH, ".//div[@class='nf__part__detail']/text()[normalize-space()]")
+                            if description_div:
+                                description_text = description_div.text.strip()
+                    except:
+                        # Last attempt: get any text content in the details section
+                        try:
+                            detail_section = part_div.find_element(By.CLASS_NAME, "nf__part__detail")
+                            # Get all text not within a child element
+                            detail_text = detail_section.text
+                            # Try to extract description by removing known element text
+                            # (This is hacky but might work for some cases)
+                            for child in detail_section.find_elements(By.XPATH, ".//*"):
+                                detail_text = detail_text.replace(child.text, "")
+                            description_text = detail_text.strip()
+                        except:
+                            pass
+                    
+                    if description_text:
+                        part_data["description"] = description_text
                 except Exception as e:
                     if self.verbose:
-                        logging.warning(f"Could not extract name/number for part {i+1}: {e}")
+                        logging.warning(f"Could not extract title/description for part {i+1}: {e}")
                 
                 # Extract price
                 try:
-                    price_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__price")
+                    price_elem = part_div.find_element(By.CSS_SELECTOR, ".price")
                     if price_elem:
-                        part_data["price"] = price_elem.text.strip()
+                        currency = price_elem.find_element(By.CSS_SELECTOR, ".price__currency").text
+                        price_text = price_elem.text.replace(currency, "").strip()
+                        part_data["price"] = f"{currency}{price_text}"
                 except Exception as e:
                     if self.verbose:
                         logging.warning(f"Could not extract price for part {i+1}: {e}")
                 
-                # Only add parts with at least some data
-                if part_data:
+                # Extract stock status
+                try:
+                    stock_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__basic-info__stock span")
+                    if stock_elem:
+                        part_data["stock_status"] = stock_elem.text.strip()
+                except Exception as e:
+                    if self.verbose:
+                        logging.warning(f"Could not extract stock status for part {i+1}: {e}")
+                
+                # Extract rating info if available
+                try:
+                    rating_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__detail__rating")
+                    if rating_elem:
+                        alt_text = rating_elem.get_attribute("alt")
+                        if alt_text and "out of 5" in alt_text:
+                            part_data["rating"] = alt_text
+                        
+                        # Extract review count
+                        review_count_elem = part_div.find_element(By.CSS_SELECTOR, ".rating__count")
+                        if review_count_elem:
+                            review_text = review_count_elem.text.strip()
+                            review_count = re.search(r'(\d+)', review_text)
+                            if review_count:
+                                part_data["reviews_count"] = int(review_count.group(1))
+                except Exception as e:
+                    if self.verbose:
+                        logging.warning(f"Could not extract rating info for part {i+1}: {e}")
+                
+                # Only add parts with at least name or URL
+                if part_data.get("name") or part_data.get("url"):
                     parts.append(part_data)
-                    
+                    if self.verbose and i % 10 == 0:
+                        logging.info(f"Processed part {i+1}: {part_data.get('name', 'Unknown')}")
+                        
             except Exception as e:
                 if self.verbose:
                     logging.warning(f"Error processing part {i+1}: {e}")
