@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 
 from azure.cosmos import CosmosClient
 from azure.identity import DefaultAzureCredential
-
+import datetime
 import json
 import os
 import glob
@@ -13,8 +13,70 @@ load_dotenv()
 
 def getLastRequestCharge(c):
     return c.client_connection.last_response_headers["x-ms-request-charge"]
+def setup_chat_history_container(database):
+    """
+    Create or get the chat history container
+    """
+    try:
+        container_name = "chat_histories"
+        container = database.create_container_if_not_exists(
+            id=container_name,
+            partition_key="/user_id",
+        )
+        return container
+    except Exception as e:
+        print(f"Error setting up chat history container: {str(e)}")
+        raise
+def save_chat_history(container, user_id, chat_id, messages):
+    """
+    Save chat history to Cosmos DB
+    """
+    try:
+        # Create document with user_id as partition key and chat_id as id
+        document = {
+            "id": chat_id,
+            "user_id": user_id,
+            "messages": messages,
+            "last_updated": datetime.datetime.utcnow().isoformat()
+        }
+        
+        # Upsert to create or update
+        container.upsert_item(document)
+        return True
+    except Exception as e:
+        print(f"Error saving chat history: {str(e)}")
+        return False
 
+def get_chat_history(container, user_id, chat_id):
+    """
+    Retrieve chat history from Cosmos DB
+    """
+    try:
+        # Query with both user_id (partition key) and chat_id
+        query = f"SELECT * FROM c WHERE c.id = '{chat_id}' AND c.user_id = '{user_id}'"
+        items = list(container.query_items(
+            query=query,
+            enable_cross_partition_query=False
+        ))
+        
+        if items:
+            return items[0].get("messages", [])
+        return []
+    except Exception as e:
+        print(f"Error retrieving chat history: {str(e)}")
+        return []
 
+def clear_chat_history(container, user_id, chat_id):
+    """
+    Clear chat history in Cosmos DB by saving empty message list
+    """
+    try:
+        save_chat_history(container, user_id, chat_id, [])
+        return True
+    except Exception as e:
+        print(f"Error clearing chat history: {str(e)}")
+        return False
+    
 def upload_json_files_to_cosmos(container, data_dir, writeOutput=print):
     """
     Upload all JSON files from a directory to CosmosDB

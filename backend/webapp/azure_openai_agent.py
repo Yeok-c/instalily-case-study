@@ -336,17 +336,34 @@ def find_by_any_part_number(part_number, max_items=10):
     except Exception as e:
         return json.dumps({"error": f"Error searching by part number: {str(e)}"})
     
-def query_azure_openai(user_query, writeOutput=print):
+def query_azure_openai(user_query, writeOutput=print, history=None):
     """
     Function to be called from app.py - handles user queries to Azure OpenAI.
-    This is a wrapper around the azure_openai_agent function to maintain API compatibility.
+    Now supports chat history for contextual conversations.
+    
+    Args:
+        user_query (str): The user's query
+        writeOutput (function): Function to output debug messages
+        history (list): Optional list of previous message objects
+        
+    Returns:
+        str: The assistant's response
     """
-    return azure_openai_agent(user_query, deployment, writeOutput)
+    return azure_openai_agent(user_query, deployment, writeOutput, history)
 
-
-def azure_openai_agent(user_query, deployment_name=deployment, writeOutput=print):
+def azure_openai_agent(user_query, deployment_name=deployment, writeOutput=print, history=None):
     """
     Handles user queries, supports specific part search functions via function calling.
+    Now supports chat history for contextual conversations.
+    
+    Args:
+        user_query (str): The user's query
+        deployment_name (str): Azure OpenAI deployment name
+        writeOutput (function): Function to output debug messages
+        history (list): Optional list of previous message objects
+        
+    Returns:
+        str: The assistant's response
     """
     # Define the search functions as tools
     tools = [
@@ -472,8 +489,7 @@ def azure_openai_agent(user_query, deployment_name=deployment, writeOutput=print
             }
         }
     ]
-
-    # Initial system and user messages
+    # Initialize messages with system prompt and add history if provided
     messages = [
         {
             "role": "system",
@@ -489,12 +505,20 @@ def azure_openai_agent(user_query, deployment_name=deployment, writeOutput=print
                 "If you haven't yet narrowed down the search, ask for more specific information.\n"
                 "If you are very certain about the result, or if there is only one item returned, note that you believe you have found the item."
             )
-        },
-        {
-            "role": "user",
-            "content": user_query,
-        },
+        }
     ]
+    
+    # Add history if provided
+    if history and isinstance(history, list):
+        for msg in history:
+            if msg.get("role") in ["user", "assistant", "tool"] and msg.get("content"):
+                messages.append(msg)
+    
+    # Add the current user query
+    messages.append({
+        "role": "user",
+        "content": user_query,
+    })
 
     writeOutput("Sending request to Azure OpenAI...", isCode=True)
 
