@@ -23,6 +23,7 @@ import json
 import os
 from tqdm import tqdm
 import selenium
+import re
 
 # Constants
 HEADERS_FILE = "./backend/scraper/headers.yml"
@@ -354,121 +355,146 @@ class ModelsScraper(BaseScraper):
     #     if self.verbose:
     #         logging.info("Successfully scraped %d parts from current page", len(parts))
     #     return parts
+    def _extract_image_url(self, part_div):
+        """
+        Extract the image URL from a part div, handling both regular and lazy-loaded images.
+        
+        Args:
+            part_div: The Selenium element representing the part div
+            
+        Returns:
+            str: The URL of the image, or None if not found
+        """
+        try:
+            # First try to find the picture element
+            picture_elem = part_div.find_element(By.CSS_SELECTOR, "picture")
+            if not picture_elem:
+                return None
+                
+            # Try to get the img element inside the picture element
+            img_elem = picture_elem.find_element(By.TAG_NAME, "img")
+            if not img_elem:
+                return None
+                
+            # First check if the image is already loaded (b-loaded class)
+            if "b-loaded" in img_elem.get_attribute("class"):
+                # Get the src attribute directly since the image is loaded
+                image_url = img_elem.get_attribute("src")
+                if image_url and not image_url.startswith("data:"):
+                    return image_url
+                    
+            # If not loaded or src is data URI, try data-src (lazy loading)
+            data_src = img_elem.get_attribute("data-src")
+            if data_src and not data_src.startswith("data:"):
+                return data_src
+                
+            # If still no URL, try to get from source elements
+            source_elems = picture_elem.find_elements(By.TAG_NAME, "source")
+            for source in source_elems:
+                # Try regular srcset first (non-lazy loaded images)
+                srcset = source.get_attribute("srcset")
+                if srcset:
+                    # Extract the first URL from the srcset attribute
+                    urls = srcset.split(",")
+                    if urls:
+                        url = urls[0].strip().split(" ")[0].strip()
+                        if url:
+                            return url
+                            
+                # Try data-srcset for lazy loaded images
+                data_srcset = source.get_attribute("data-srcset")
+                if data_srcset:
+                    # Extract the first URL from the data-srcset attribute
+                    urls = data_srcset.split(",")
+                    if urls:
+                        url = urls[0].strip().split(" ")[0].strip()
+                        if url:
+                            return url
+            
+            return None
+        except Exception as e:
+            if self.verbose:
+                logging.warning(f"Error extracting image URL: {str(e)}")
+            return None
+
     def _scrape_parts_on_page(self, part_elements):
         """Extract dishwasher parts from the page."""
         if self.verbose:
             logging.info("Extracting parts from current page...")
-        
-        import re  # Make sure to add the import at the top if it's not there
         
         parts = []
         for i, part_div in enumerate(part_elements):
             try:
                 part_data = {}
                 
-                # Extract part name and link
-                part_link_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__img a")
-                if part_link_elem:
-                    part_data["url"] = part_link_elem.get_attribute("href")
-                    
-                # Extract image URL from data-srcset attribute
+                # Extract part URL
                 try:
-                    # First try to get the WebP image source which is typically the first source element
-                    webp_source = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__img picture source[type='image/webp']")
-                    if webp_source:
-                        # Try data-srcset first (for lazy-loaded images)
-                        data_srcset = webp_source.get_attribute("data-srcset")
-                        if data_srcset:
-                            # Extract the first URL (before the comma or space)
-                            first_url = re.split(r'[,\s]', data_srcset.strip())[0].strip()
-                            if first_url:
-                                part_data["image_url"] = first_url
-                        else:
-                            # Fall back to regular srcset if data-srcset isn't available
-                            srcset = webp_source.get_attribute("srcset")
-                            if srcset:
-                                first_url = re.split(r'[,\s]', srcset.strip())[0].strip()
-                                if first_url:
-                                    part_data["image_url"] = first_url
-                    
-                    # If WebP source didn't work, try JPEG source
-                    if not part_data.get("image_url"):
-                        jpeg_source = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__img picture source[type='image/jpeg']")
-                        if jpeg_source:
-                            data_srcset = jpeg_source.get_attribute("data-srcset")
-                            if data_srcset:
-                                first_url = re.split(r'[,\s]', data_srcset.strip())[0].strip()
-                                if first_url:
-                                    part_data["image_url"] = first_url
-                            else:
-                                srcset = jpeg_source.get_attribute("srcset")
-                                if srcset:
-                                    first_url = re.split(r'[,\s]', srcset.strip())[0].strip()
-                                    if first_url:
-                                        part_data["image_url"] = first_url
-                    
-                    # Last resort: try to get from the img tag's data-src attribute
-                    if not part_data.get("image_url"):
-                        img_tag = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__img img")
-                        if img_tag:
-                            data_src = img_tag.get_attribute("data-src")
-                            if data_src and not data_src.startswith("data:"):
-                                part_data["image_url"] = data_src
-                            elif img_tag.get_attribute("src") and not img_tag.get_attribute("src").startswith("data:"):
-                                part_data["image_url"] = img_tag.get_attribute("src")
+                    part_link_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__img a")
+                    if part_link_elem:
+                        part_data["url"] = part_link_elem.get_attribute("href")
                 except Exception as e:
                     if self.verbose:
-                        logging.warning(f"Could not extract image for part {i+1}: {e}")
-                
-                # Extract part title and details
+                        logging.warning(f"Part {i+1}: Unable to extract URL: {e}")
+
+                # Extract image URL - call the new helper method
+                image_url = self._extract_image_url(part_div)
+                if image_url:
+                    part_data["image_url"] = image_url
+                elif self.verbose:
+                    logging.warning(f"Part {i+1}: Could not extract image URL.")
+                    
+                # Extract title and part numbers
                 try:
                     title_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__detail__title span")
                     if title_elem:
                         part_data["name"] = title_elem.text.strip()
-                    
-                    # Extract PartSelect Number
+
                     ps_number_elem = part_div.find_element(By.XPATH, ".//div[contains(text(), 'PartSelect Number')]/strong")
                     if ps_number_elem:
                         part_data["partselect_number"] = ps_number_elem.text.strip()
-                    
-                    # Extract Manufacturer Number
+
                     mfr_number_elem = part_div.find_element(By.XPATH, ".//div[contains(text(), 'Manufacturer Part Number')]/strong")
                     if mfr_number_elem:
                         part_data["manufacturer_number"] = mfr_number_elem.text.strip()
-                    
-                    # Extract description text if available
-                    description_text = None
-                    try:
-                        # Look for any text after the part number divs but before the symptoms section
-                        description_div = part_div.find_element(By.XPATH, ".//div[@class='nf__part__detail']/div[contains(@class, 'nf__part__detail__part-number')]/following-sibling::text()[1]")
-                        if description_div:
-                            description_text = description_div.text.strip()
-                        
-                        # If that fails, try to get any text node between the part number and symptoms/instructions
-                        if not description_text:
-                            description_div = part_div.find_element(By.XPATH, ".//div[@class='nf__part__detail']/text()[normalize-space()]")
-                            if description_div:
-                                description_text = description_div.text.strip()
-                    except:
-                        # Last attempt: get any text content in the details section
-                        try:
-                            detail_section = part_div.find_element(By.CLASS_NAME, "nf__part__detail")
-                            # Get all text not within a child element
-                            detail_text = detail_section.text
-                            # Try to extract description by removing known element text
-                            # (This is hacky but might work for some cases)
-                            for child in detail_section.find_elements(By.XPATH, ".//*"):
-                                detail_text = detail_text.replace(child.text, "")
-                            description_text = detail_text.strip()
-                        except:
-                            pass
-                    
-                    if description_text:
-                        part_data["description"] = description_text
                 except Exception as e:
                     if self.verbose:
-                        logging.warning(f"Could not extract title/description for part {i+1}: {e}")
-                
+                        logging.warning(f"Part {i+1}: Title/part number extraction error: {e}")
+
+                # Extract description - get text content directly after part number divs
+                try:
+                    # Get all text nodes in the detail section, excluding nested elements
+                    detail_div = part_div.find_element(By.CLASS_NAME, "nf__part__detail")
+                    
+                    # Get all the text content
+                    full_text = detail_div.text
+                    
+                    # Remove known element texts
+                    if part_data.get("name"):
+                        full_text = full_text.replace(part_data["name"], "")
+                    
+                    # Remove part number texts
+                    part_number_pattern = r"PartSelect Number.*\n"
+                    full_text = re.sub(part_number_pattern, "", full_text)
+                    
+                    part_number_pattern = r"Manufacturer Part Number.*\n"
+                    full_text = re.sub(part_number_pattern, "", full_text)
+                    
+                    # Remove "Fixes these symptoms" and everything after
+                    symptoms_index = full_text.find("Fixes these symptoms")
+                    if symptoms_index > 0:
+                        full_text = full_text[:symptoms_index].strip()
+                    
+                    # Remove "Installation Instructions" and everything after
+                    instructions_index = full_text.find("Installation Instructions")
+                    if instructions_index > 0:
+                        full_text = full_text[:instructions_index].strip()
+                    
+                    if full_text:
+                        part_data["description"] = full_text.strip()
+                except Exception as e:
+                    if self.verbose:
+                        logging.warning(f"Part {i+1}: Description extraction error: {e}")
+
                 # Extract price
                 try:
                     price_elem = part_div.find_element(By.CSS_SELECTOR, ".price")
@@ -478,8 +504,8 @@ class ModelsScraper(BaseScraper):
                         part_data["price"] = f"{currency}{price_text}"
                 except Exception as e:
                     if self.verbose:
-                        logging.warning(f"Could not extract price for part {i+1}: {e}")
-                
+                        logging.warning(f"Part {i+1}: Price extraction error: {e}")
+
                 # Extract stock status
                 try:
                     stock_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__left-col__basic-info__stock span")
@@ -487,27 +513,24 @@ class ModelsScraper(BaseScraper):
                         part_data["stock_status"] = stock_elem.text.strip()
                 except Exception as e:
                     if self.verbose:
-                        logging.warning(f"Could not extract stock status for part {i+1}: {e}")
-                
-                # Extract rating info if available
+                        logging.warning(f"Part {i+1}: Stock status extraction error: {e}")
+
+                # Extract rating info
                 try:
                     rating_elem = part_div.find_element(By.CSS_SELECTOR, ".nf__part__detail__rating")
                     if rating_elem:
                         alt_text = rating_elem.get_attribute("alt")
                         if alt_text and "out of 5" in alt_text:
                             part_data["rating"] = alt_text
-                        
-                        # Extract review count
-                        review_count_elem = part_div.find_element(By.CSS_SELECTOR, ".rating__count")
-                        if review_count_elem:
-                            review_text = review_count_elem.text.strip()
-                            review_count = re.search(r'(\d+)', review_text)
-                            if review_count:
-                                part_data["reviews_count"] = int(review_count.group(1))
+
+                    review_count_elem = part_div.find_element(By.CSS_SELECTOR, ".rating__count")
+                    if review_count_elem:
+                        match = re.search(r'\d+', review_count_elem.text)
+                        if match:
+                            part_data["reviews_count"] = int(match.group(0))
                 except Exception as e:
                     if self.verbose:
-                        logging.warning(f"Could not extract rating info for part {i+1}: {e}")
-                
+                        logging.warning(f"Part {i+1}: Rating extraction error: {e}")
                 # Only add parts with at least name or URL
                 if part_data.get("name") or part_data.get("url"):
                     parts.append(part_data)
@@ -516,13 +539,13 @@ class ModelsScraper(BaseScraper):
                         
             except Exception as e:
                 if self.verbose:
-                    logging.warning(f"Error processing part {i+1}: {e}")
-        
+                    logging.warning(f"Part {i+1}: General error: {e}")
+
         if self.verbose:
             logging.info(f"Extracted {len(parts)} parts from page")
         
         return parts
-    
+
     def scrape_single_part_details(self, url):
         """Scrape detailed information from a single part page, including reviews and repair stories."""
         try:
@@ -905,7 +928,7 @@ class ModelsScraper(BaseScraper):
                         url = f"{base_url}?start={i+1}"
                     
                     page_source = self.driver.page_source
-                    if "Popular Admiral Dishwasher Parts" not in page_source:
+                    if "Reviews" not in page_source:
                         logging.info("No models found on page %d. Stopping further scraping.", i+1)
                         break
                     

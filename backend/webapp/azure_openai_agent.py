@@ -502,7 +502,7 @@ def azure_openai_agent(user_query, deployment_name=deployment, writeOutput=print
         # First call: let the model decide if it wants to use the tool
         response = client.chat.completions.create(
             messages=messages,
-            max_completion_tokens=800,
+            max_completion_tokens=2000,
             temperature=0.7,
             top_p=0.95,  # Slightly reduced from 1.0 for more focused responses
             frequency_penalty=0.0,
@@ -575,7 +575,8 @@ def azure_openai_agent(user_query, deployment_name=deployment, writeOutput=print
                     - If multiple search results come up, it is likely that the same part is used for multiple appliances. 
                     
                     If you are very certain about the result(s), you should format the result as a list of dictionaries. Even if there is only one result you should format it as a list of length 1.
-                    The users will not know it is a list of dictionaries, as the frontend will render this list of dictionaries nicely in the UI.\n"
+                    The users will not know it is a list of dictionaries. 
+                    Make sure you include ```dictionary-list-to-render as the frontend will render this list of dictionaries nicely in the UI.\n"
                     Example:
                     ```dictionary-list-to-render
                     [
@@ -597,7 +598,7 @@ def azure_openai_agent(user_query, deployment_name=deployment, writeOutput=print
             writeOutput("Getting final response from Azure OpenAI to show to user", isCode=True)
             final_response = client.chat.completions.create(
                 messages=messages,
-                max_completion_tokens=800,
+                max_completion_tokens=2000,
                 temperature=0.7,
                 top_p=0.95,
                 frequency_penalty=0.0,
