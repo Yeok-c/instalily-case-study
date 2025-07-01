@@ -1,10 +1,19 @@
-# Deploy a Python (Flask) web app to Azure App Service - Sample Application
+# Quickstart - Azure Cosmos DB for NoSQL - Python
 
-This is the sample Flask application for the Azure Quickstart [Deploy a Python (Django or Flask) web app to Azure App Service](https://docs.microsoft.com/en-us/azure/app-service/quickstart-python). For instructions on how to create the Azure resources and deploy the application to Azure, refer to the Quickstart article.
+Sample Python Flask web application using Azure Cosmos DB for NoSQL.
 
-Sample applications are available for the other frameworks here:
+| Task | Link |
+| --- | --- |
+| Downloaded latest source code | <https://github.com/azurecosmosdb/quickstart-nosql-python/releases/latest/download/project.zip> |
+| Open in GitHub Codespaces | <https://codespaces.new/AzureCosmosDB/quickstart-nosql-python?template=true&quickstart=1> |
 
-* Django [https://github.com/Azure-Samples/msdocs-python-django-webapp-quickstart](https://github.com/Azure-Samples/msdocs-python-django-webapp-quickstart)
-* FastAPI [https://github.com/Azure-Samples/msdocs-python-fastapi-webapp-quickstart](https://github.com/Azure-Samples/msdocs-python-fastapi-webapp-quickstart)
+## Run this
 
-If you need an Azure account, you can [create one for free](https://azure.microsoft.com/en-us/free/).
+1. Replace the credentials in **cosmos.py** with your Azure Cosmos DB for NoSQL account's credentials.
+
+1. Start the application:
+
+    ```shell
+    pip install -r requirements.txt
+    python app.py
+    ```
