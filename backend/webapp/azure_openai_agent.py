@@ -546,6 +546,7 @@ def azure_openai_agent(user_query, deployment_name=deployment, writeOutput=print
                     max_items = args.get("max_items", 10)
                     writeOutput(f"Searching by part number: {part_number}", isCode=True)
                     tool_result = find_by_any_part_number(part_number, max_items)
+
                 elif tool_call.function.name == "find_by_description":
                     description = args.get("description")
                     max_items = args.get("max_items", 10)
@@ -570,7 +571,11 @@ def azure_openai_agent(user_query, deployment_name=deployment, writeOutput=print
                 "role": "user",
                 "content": (
                     """
-                    You should now explain the results to the user. If multiple search results come up, it is likely that the same part is used for multiple appliances. If you are very certain about the result(s), you should format the result as a list of dictionaries. The users will not know it is a list of dictionaries, as this will be rendered nicely in the UI.\n"
+                    You should now explain the results to the user. 
+                    - If multiple search results come up, it is likely that the same part is used for multiple appliances. 
+                    
+                    If you are very certain about the result(s), you should format the result as a list of dictionaries. Even if there is only one result you should format it as a list of length 1.
+                    The users will not know it is a list of dictionaries, as the frontend will render this list of dictionaries nicely in the UI.\n"
                     Example:
                     ```dictionary-list-to-render
                     [
