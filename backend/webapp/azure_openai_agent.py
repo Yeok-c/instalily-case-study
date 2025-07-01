@@ -620,7 +620,304 @@ def azure_openai_agent(user_query, deployment_name=deployment, writeOutput=print
         error_message = f"Error calling Azure OpenAI: {str(e)}"
         writeOutput(error_message, isCode=True)
         return {"error": error_message}
+    
+# Add this new function to handle conversation history
+def query_azure_openai_with_history(user_query, conversation_history, writeOutput=print):
+    """
+    Function to handle user queries with conversation history context.
+    
+    Args:
+        user_query (str): The current user query
+        conversation_history (list): List of previous messages in the conversation
+        writeOutput (function): Function to handle output messages
+        
+    Returns:
+        str: Response from Azure OpenAI
+    """
+    # Define the search functions as tools (same as in azure_openai_agent)
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "find_by_brand_product",
+                "description": """
+                Find parts by brand and product type (e.g., 'Philips-Dishwasher').
+                Use this when user is looking for a specific brand and product combination.
+                If the exact brand-product isn't found, it will try searching by brand only.
+                """,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "brand_product": {
+                            "type": "string",
+                            "description": "Brand and product combination like 'Philips-Dishwasher'"
+                        },
+                        "max_items": {
+                            "type": "integer",
+                            "description": "Maximum number of items to return (default 10)."
+                        }
+                    },
+                    "required": ["brand_product"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "find_by_brand",
+                "description": """
+                Find parts by brand name only (e.g., 'Philips').
+                Use this when user is only interested in a specific brand, regardless of product type.
+                """,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "brand": {
+                            "type": "string",
+                            "description": "Brand name like 'Philips'"
+                        },
+                        "max_items": {
+                            "type": "integer",
+                            "description": "Maximum number of items to return (default 10)."
+                        }
+                    },
+                    "required": ["brand"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "find_by_product",
+                "description": """
+                Find parts by product type only (e.g., 'Dishwasher').
+                Use this when user wants to see parts for a specific product type across all brands.
+                """,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "product": {
+                            "type": "string",
+                            "description": "Product type like 'Dishwasher'"
+                        },
+                        "max_items": {
+                            "type": "integer",
+                            "description": "Maximum number of items to return (default 10)."
+                        }
+                    },
+                    "required": ["product"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "find_by_description",
+                "description": """
+                Find parts by description (e.g., 'Jenn-Air Dishwasher Rack Track Stop').
+                Use this when user wants to find parts by their descriptive name.
+                """,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "description": {
+                            "type": "string",
+                            "description": "Description of the part (e.g., 'Jenn-Air Dishwasher Rack Track Stop')"
+                        },
+                        "max_items": {
+                            "type": "integer",
+                            "description": "Maximum number of items to return (default 10)."
+                        }
+                    },
+                    "required": ["description"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "find_by_any_part_number",
+                "description": """
+                Search for a part using either a manufacturer number or a PartSelect number (e.g., PS1990907).
+                This function will try both search methods and combine results if needed.
+                """,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "part_number": {
+                            "type": "string",
+                            "description": "The part number, either manufacturer or PartSelect"
+                        },
+                        "max_items": {
+                            "type": "integer",
+                            "description": "Maximum number of items to return (default 10)."
+                        }
+                    },
+                    "required": ["part_number"]
+                }
+            }
+        }
+    ]
 
+    # Initial system message
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a helpful assistant specializing in appliance parts and repair knowledge.\n"
+                "You can help users find parts by:\n"
+                "1. Brand and product type (e.g., 'Philips-Dishwasher')\n"
+                "2. Brand only (e.g., 'Philips')\n"
+                "3. Product type only (e.g., 'Dishwasher')\n"
+                "4. Part number (either manufacturer or PartSelect). This is very specific and preferred\n"
+                "If the specific brand-product combination isn't found, search for the brand and product separately.\n"
+                "If the returned results is None, tell them 'I believe we don't sell <product> of this <brand>. You can double check to see our list of products at https://www.partselect.com/Products/'\n"
+                "If you haven't yet narrowed down the search, ask for more specific information.\n"
+                "If you are very certain about the result, or if there is only one item returned, note that you believe you have found the item."
+            )
+        }
+    ]
+    
+    # Add conversation history
+    if conversation_history:
+        writeOutput(f"Adding {len(conversation_history)} previous messages as context")
+        for msg in conversation_history:
+            if msg.get("role") and msg.get("content"):
+                messages.append({
+                    "role": msg["role"],
+                    "content": msg["content"]
+                })
+    
+    # Add the current user query
+    messages.append({
+        "role": "user",
+        "content": user_query,
+    })
+
+    writeOutput("Sending request to Azure OpenAI with conversation history...", isCode=True)
+
+    try:
+        # First call: let the model decide if it wants to use the tool
+        response = client.chat.completions.create(
+            messages=messages,
+            max_completion_tokens=2000,
+            temperature=0.7,
+            top_p=0.95,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+            model=deployment,
+            tools=tools,
+            tool_choice="auto"
+        )
+
+        response_message = response.choices[0].message
+        messages.append(response_message)
+
+        writeOutput(f"AI Response: {response_message.content}", isCode=True)
+        
+        # If the model called a tool, execute it and append the result
+        if getattr(response_message, "tool_calls", None):
+            writeOutput("AI is searching for parts...", isCode=True)
+            for tool_call in response_message.tool_calls:
+                args = json.loads(tool_call.function.arguments)
+                
+                if tool_call.function.name == "find_by_brand_product":
+                    brand_product = args.get("brand_product")
+                    max_items = args.get("max_items", 10)
+                    writeOutput(f"Searching for brand/product: {brand_product}", isCode=True)
+                    tool_result = find_by_brand_product(brand_product, max_items)
+                
+                elif tool_call.function.name == "find_by_brand":
+                    brand = args.get("brand")
+                    max_items = args.get("max_items", 10)
+                    writeOutput(f"Searching for brand: {brand}", isCode=True)
+                    tool_result = find_by_brand(brand, max_items)
+                
+                elif tool_call.function.name == "find_by_product":
+                    product = args.get("product")
+                    max_items = args.get("max_items", 10)
+                    writeOutput(f"Searching for product: {product}", isCode=True)
+                    tool_result = find_by_product(product, max_items)
+                
+                elif tool_call.function.name == "find_by_any_part_number":
+                    part_number = args.get("part_number")
+                    max_items = args.get("max_items", 10)
+                    writeOutput(f"Searching by part number: {part_number}", isCode=True)
+                    tool_result = find_by_any_part_number(part_number, max_items)
+
+                elif tool_call.function.name == "find_by_description":
+                    description = args.get("description")
+                    max_items = args.get("max_items", 10)
+                    writeOutput(f"Searching for description: {description}", isCode=True)
+                    tool_result = find_by_description(description, max_items)
+                
+                messages.append({
+                    "tool_call_id": tool_call.id,
+                    "role": "tool",
+                    "name": tool_call.function.name,
+                    "content": tool_result,
+                })
+
+            # Check if we got valid results or an error
+            results = json.loads(messages[-1]["content"])
+            if isinstance(results, dict) and "error" in results:
+                writeOutput(f"Search error: {results['error']}", isCode=True)
+            else:
+                writeOutput(f"Found {len(results) if isinstance(results, list) else 0} results", isCode=True)
+
+            messages.append({
+                "role": "user",
+                "content": (
+                    """
+                    You should now explain the results to the user. 
+                    - If multiple search results come up, it is likely that the same part is used for multiple appliances. 
+                    
+                    If you are very certain about the result(s), you should format the result as a list of dictionaries. Even if there is only one result you should format it as a list of length 1.
+                    The users will not know it is a list of dictionaries. 
+                    Make sure you include ```dictionary-list-to-render as the frontend will render this list of dictionaries nicely in the UI.\n"
+                    Example:
+                    ```dictionary-list-to-render
+                    [
+                        {
+                        "part_name": "Dacor Refrigerator Part",
+                        "manufacturer_number": "123456",
+                        "partselect_number": "PS1990907",
+                        "price": "$99.99",
+                        "url": "https://www.partselect.com/Parts/123456"
+                        "image_url": "https://www.partselect.com/Images/123456.jpg",
+                        },
+                        ...
+                    ]
+                    ```
+                    """
+                )
+            })
+            # Second call: get the final answer from the model
+            writeOutput("Getting final response from Azure OpenAI to show to user", isCode=True)
+            final_response = client.chat.completions.create(
+                messages=messages,
+                max_completion_tokens=2000,
+                temperature=0.7,
+                top_p=0.95,
+                frequency_penalty=0.0,
+                presence_penalty=0.0,
+                model=deployment
+            )
+            writeOutput("Final response received from Azure OpenAI.", isCode=True)
+            writeOutput(f"{final_response.choices[0].message.content}", isCode=True)
+            return final_response.choices[0].message.content
+        else:
+            # No tool call, just return the model's direct response
+            return response_message.content
+    
+    except AzureError as ae:
+        error_message = f"Azure OpenAI error: {str(ae)}"
+        writeOutput(error_message, isCode=True)
+        return {"error": error_message}
+    except Exception as e:
+        error_message = f"Error calling Azure OpenAI: {str(e)}"
+        writeOutput(error_message, isCode=True)
+        return {"error": error_message}
 
 # Example usage
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 
 from cosmos import test_upload_json_files, run_cosmos_queries as run_queries
-from azure_openai_agent import query_azure_openai
+from azure_openai_agent import query_azure_openai, query_azure_openai_with_history
 
 import os
 
@@ -22,7 +22,7 @@ socket = SocketIO(
 def health_check():
     return jsonify({"status": "ok", "message": "API is running"}), 200
 
-# API endpoint implementation
+# Update the API endpoint to handle conversation history
 @app.route("/api/query", methods=["POST"])
 def api_query():
     try:
@@ -39,15 +39,18 @@ def api_query():
                 self.messages.append(message)
         
         collector = OutputCollector()
-        result = query_azure_openai(data["query"], collector.collect)
+        
+        # Extract conversation history if available
+        conversation_history = data.get("conversation_history", [])
+        
+        # Pass the conversation history to the Azure OpenAI agent
+        result = query_azure_openai_with_history(data["query"], conversation_history, collector.collect)
         
         # Return the result as JSON
         return jsonify({"response": result, "debug_logs": collector.messages})
     except Exception as e:
         print(f"API Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
-# Other routes remain unchanged...
 
 # Make sure this is below the API routes
 @app.route('/', defaults={'path': ''})
