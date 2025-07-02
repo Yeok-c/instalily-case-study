@@ -12,7 +12,7 @@ function App() {
         <ChatWindow />
       </main>
       <footer className="app-footer">
-        <p>© 2025 Instalily - Appliance Parts Assistant</p>
+        <p>© 2025 Yeok's Instalily Case Study - Appliance Parts Assistant</p>
       </footer>
     </div>
   );

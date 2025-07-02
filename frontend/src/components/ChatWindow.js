@@ -297,23 +297,82 @@ function ChatWindow() {
   }, []);
 
   // Helper function to render a product card from JSON - wrapped in useCallback
+  // Helper function to render a product card from JSON - wrapped in useCallback
   const renderProductCard = useCallback((product) => {
+    if (!product) return '';
+    
+    // Make sure we have valid strings for all properties
+    const part_name = product.part_name || product.name || 'Product';
+    const manufacturer_number = product.manufacturer_number || '';
+    const partselect_number = product.partselect_number || '';
+    const price = product.price || '';
+    const stock_status = product.stock_status || 'Unknown';
+    const rating = product.rating || 0;
+    const reviews_count = product.reviews_count || 0;
+    const url = product.url || '';
+    const image_url = product.image_url || '';
+    const video_url = product.video_url || '';
+    const description = product.description || '';
+    
+    // Format the rating as stars
+    const renderRating = (rating) => {
+      if (!rating) return '';
+      const fullStars = Math.floor(rating);
+      const halfStar = rating % 1 >= 0.5 ? 1 : 0;
+      const emptyStars = 5 - fullStars - halfStar;
+      
+      return `
+        <div class="product-rating">
+          ${'★'.repeat(fullStars)}${halfStar ? '½' : ''}${'☆'.repeat(emptyStars)}
+          <span class="reviews-count">(${reviews_count} ${reviews_count === 1 ? 'review' : 'reviews'})</span>
+        </div>
+      `;
+    };
+    
+    // Check if YouTube video URL needs to be converted to embed format
+    let videoEmbedUrl = '';
+    if (video_url && video_url.includes('youtube.com/watch?v=')) {
+      videoEmbedUrl = video_url.replace('watch?v=', 'embed/');
+    } else if (video_url && video_url.includes('youtu.be/')) {
+      videoEmbedUrl = video_url.replace('youtu.be/', 'youtube.com/embed/');
+    } else if (video_url) {
+      videoEmbedUrl = video_url; // Use as-is if it's not a recognized YouTube format
+    }
+    
     return `
       <div class="product-card">
         <div class="product-header">
-          <h3>${product.part_name || product.name || 'Product'}</h3>
-          <span class="product-price">${product.price || ''}</span>
+          <h3>${part_name}</h3>
+          <span class="product-price">${price}</span>
         </div>
-        ${product.image_url ? `<img src="${product.image_url}" alt="${product.part_name || 'Product'}" class="product-image" />` : ''}
+        ${image_url ? `<img src="${image_url}" alt="${part_name}" class="product-image" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x200?text=No+Image';" />` : ''}
         <div class="product-details">
-          ${product.manufacturer_number ? `<p><strong>Manufacturer #:</strong> ${product.manufacturer_number}</p>` : ''}
-          ${product.partselect_number ? `<p><strong>PartSelect #:</strong> ${product.partselect_number}</p>` : ''}
-          ${product.description ? `<p>${product.description}</p>` : ''}
-          ${product.url ? `<a href="${product.url}" target="_blank" class="product-link">View Details</a>` : ''}
+          <div class="product-info-row">
+            <span class="product-stock ${stock_status.toLowerCase().includes('in stock') ? 'in-stock' : 'out-of-stock'}">${stock_status}</span>
+            ${rating > 0 ? renderRating(rating) : ''}
+          </div>
+          ${manufacturer_number ? `<p><strong>Manufacturer #:</strong> ${manufacturer_number}</p>` : ''}
+          ${partselect_number ? `<p><strong>PartSelect #:</strong> ${partselect_number}</p>` : ''}
+          ${description ? `<p>${description}</p>` : ''}
+          ${url ? `<a href="${url}" target="_blank" class="product-link">View Details</a>` : ''}
+          ${videoEmbedUrl ? 
+            `<div class="product-video-container">
+              <h4>Installation Video:</h4>
+              <iframe 
+                width="100%" 
+                height="200" 
+                src="${videoEmbedUrl}" 
+                frameborder="0" 
+                allowfullscreen
+                title="Installation video"
+              ></iframe>
+            </div>` 
+            : ''}
         </div>
       </div>
     `;
   }, []);
+
 
   // Helper function to render a list of products - wrapped in useCallback
   const renderProductList = useCallback((products) => {
@@ -325,7 +384,7 @@ function ChatWindow() {
       </div>
     `;
   }, [renderProductCard]);
-
+  
   // Custom renderer for JSON blocks
   useEffect(() => {
     const renderer = new marked.Renderer();

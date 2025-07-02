@@ -3,7 +3,7 @@ from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 
 from cosmos import test_upload_json_files, run_cosmos_queries as run_queries
-from azure_openai_agent import query_azure_openai, query_azure_openai_with_history
+from azure_openai_agent import query_azure_openai_with_history
 
 import os
 

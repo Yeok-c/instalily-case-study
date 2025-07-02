@@ -1,5 +1,3 @@
-/* Add these styles to your existing ChatWindow.css file */
-
 /* Layout for the chat UI with sidebar */
 .chat-layout {
   display: flex;
@@ -11,7 +9,7 @@
 /* Chat History Sidebar */
 .chat-history {
   width: 280px;
-  background-color: #f5f5f5;
+  background-color: #fafafa;
   border-right: 1px solid #ddd;
   height: 100%;
   display: flex;
@@ -34,7 +32,7 @@
 }
 
 .new-chat-button {
-  background-color: #4f94ef;
+  background-color: #ee9721;
   color: white;
   border: none;
   border-radius: 4px;
@@ -45,11 +43,11 @@
 }
 
 .new-chat-button:hover {
-  background-color: #3a7fd5;
+  background-color: #d67f0f;
 }
 
 .close-history {
-  display: none; /* Hidden on desktop, shown on mobile */
+  display: none;
   background: none;
   border: none;
   font-size: 24px;
@@ -76,12 +74,12 @@
 }
 
 .history-item:hover {
-  background-color: #e9e9e9;
+  background-color: #f1f1f1;
 }
 
 .history-item.active {
-  background-color: #e4eefe;
-  border-left: 3px solid #4f94ef;
+  background-color: #eaf5f6;
+  border-left: 3px solid #34737b;
 }
 
 .history-item-content {
@@ -146,7 +144,7 @@
 }
 
 .history-toggle {
-  display: none; /* Hidden on desktop, shown on mobile */
+  display: none;
   background: none;
   border: none;
   font-size: 20px;
@@ -168,7 +166,6 @@
   flex-direction: column;
 }
 
-/* Message timestamp */
 .message-timestamp {
   font-size: 11px;
   color: #999;
@@ -180,7 +177,36 @@
   text-align: left;
 }
 
-/* Responsive design for mobile */
+/* Chat message from assistant */
+.assistant-message {
+  background-color: #f2faff; /* light teal background for assistant */
+  border: 1px solid #cce6ea; /* subtle border */
+  border-left: 4px solid #34737b; /* brand accent */
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  max-width: 90%;
+  align-self: flex-start;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+/* Chat message from user */
+.user-message {
+  background-color: #fff8f3;
+  border: 1px solid #f5d8c2;
+  border-right: 4px solid #ee9721; /* brand accent */
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  max-width: 90%;
+  align-self: flex-end;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .chat-history {
     position: absolute;
@@ -204,7 +230,7 @@
   }
 }
 
-/* Updated loading animation styles */
+/* Updated loading animation */
 .message.loading {
   background-color: transparent;
   display: flex;
@@ -215,7 +241,6 @@
   border: none;
 }
 
-/* Spinner animation */
 .loading-spinner {
   display: inline-block;
   position: relative;
@@ -225,7 +250,7 @@
 
 .loading-spinner div {
   position: absolute;
-  border: 4px solid #ddd;
+  border: 4px solid #ccc;
   opacity: 1;
   border-radius: 50%;
   animation: loading-spinner 1s cubic-bezier(0, 0.2, 0.8, 1) infinite;
@@ -252,7 +277,212 @@
   }
 }
 
-/* Remove old typing indicator styles that were causing layout shifts */
 .typing-indicator {
   display: none;
+}
+
+/* Product Card Styles */
+.product-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  background-color: #fff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.product-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f9f9f9;
+}
+
+.product-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.product-price {
+  font-weight: bold;
+  color: #34737b;
+}
+
+.product-image {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  background-color: #fff;
+  padding: 12px 0;
+}
+info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.product-stock {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.in-stock {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.out-of-stock {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.product-rating {
+  color: #ffa000;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.reviews-count {
+  font-size: 13px;
+  color: #666;
+  margin-left: 5px;
+}
+
+.product-details {
+  padding: 16px;
+}
+
+.product-details p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.product-link {
+  display: inline-block;
+  margin-top: 12px;
+  background-color: #ee9721;
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.product-link:hover {
+  background-color: #d67f0f;
+}
+
+.product-video-container {
+  margin-top: 16px;
+  border-top: 1px solid #eee;
+  padding-top: 16px;
+}
+
+.product-video-container h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.product-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .product-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Input Area Styles */
+.input-area {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #fff;
+  border-top: 1px solid #eee;
+  position: sticky;
+  bottom: 0;
+}
+
+.input-area form {
+  display: flex;
+  gap: 12px;
+}
+
+.input-area input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+.input-area input:focus {
+  outline: none;
+  border-color: #34737b;
+  box-shadow: 0 0 0 2px rgba(52, 115, 123, 0.2);
+  background-color: #fff;
+}
+
+.input-area input::placeholder {
+  color: #999;
+}
+
+.input-area input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.send-button {
+  background-color: #ee9721;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0 20px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-button:hover:not(:disabled) {
+  background-color: #d67f0f;
+}
+
+.send-button:disabled {
+  background-color: #f0c08a;
+  cursor: not-allowed;
+}
+
+/* Responsive styling for mobile */
+@media (max-width: 768px) {
+  .input-area {
+    padding: 12px;
+  }
+  
+  .input-area input {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  
+  .send-button {
+    padding: 0 16px;
+    font-size: 14px;
+  }
 }
