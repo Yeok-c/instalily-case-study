@@ -1,4 +1,9 @@
 # Instalily Case Study Project
+
+Live Demo Website:
+
+https://app-web-kmw2ouujgm2ke.azurewebsites.net/
+
 ## Key functionalities
 - Scrape source website and puts information into CosmosDB
 - Instead of RAG from vectorstore (not exact), RAG with SQL. This allows exact matches and cheaper retrieval
@@ -30,6 +35,17 @@ python ./backend/scraper/scraper.py  --verbose --no-proxy --driver Chrome
 ```
 azd up
 ```
+
+Go to Azure portal for this web app -> Settings -> Configurations-> Start up command
+
+```
+gunicorn --bind=0.0.0.0 --timeout 600 startup:app
+```
+
+Make sure Python version is set to 3.11
+
+The website will be hosted at a random domain.
+
 # Systems diagram
 ![System Diagram](azure_app/system.png)
 
