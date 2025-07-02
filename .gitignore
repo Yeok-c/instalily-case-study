@@ -1,3 +1,4 @@
 .env
+**/.env
 /backend/webapp/sk/useful_examples
 node_modules
