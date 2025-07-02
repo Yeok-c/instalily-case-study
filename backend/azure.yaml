@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: backend
+metadata:
+    template: azd-init@1.17.2
+services:
+    backend:
+        project: .
+        host: containerapp
+        language: python
+resources:
+    backend:
+        type: host.containerapp
+        port: 80
