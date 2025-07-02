@@ -1,12 +1,13 @@
 # Instalily Case Study Project
 
-Live Demo Website:
+## Live Demo Website:
+
 <div>
     <a href="https://app-web-kmw2ouujgm2ke.azurewebsites.net/">
-      <p>Live demo website</p>
+      <p>Azure Web App Demo</p>
     </a>
     <a href="https://app-web-kmw2ouujgm2ke.azurewebsites.net/">
-      <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/2eecde48ef534ce6960d75801e5f1183-7680d68932e60cdb-full-play.gif">
+      <img style="max-width:300px;" src="https://github.com/user-attachments/assets/7c9f8d33-1d40-41c6-afb8-d8cff5d67c3c">
     </a>
   </div>
 
