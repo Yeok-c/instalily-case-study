@@ -29,15 +29,6 @@ def run_cosmos_queries_handler(data=None):
     emitOutput("Current Status:\tRunning queries...")
     run_queries(emitOutput)
 
-@socket.on("query_ai", namespace="/cosmos-db-nosql")
-def handle_ai_query(data):
-    if "query" in data and data["query"].strip():
-        emitOutput(f"AI Query: {data['query']}")
-        # Pass the emitOutput function to send updates to the client
-        result = query_azure_openai(data["query"], emitOutput)
-        if "error" in result:
-            emitOutput(f"Error: {result['error']}", isCode=True)
-
 def emitOutput(message, isCode=False):
     emit("new_message", {"message": message, "code": isCode})
 
