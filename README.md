@@ -1,8 +1,15 @@
 # Instalily Case Study Project
 
 Live Demo Website:
+<div>
+    <a href="https://app-web-kmw2ouujgm2ke.azurewebsites.net/">
+      <p>Live demo website</p>
+    </a>
+    <a href="https://app-web-kmw2ouujgm2ke.azurewebsites.net/">
+      <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/2eecde48ef534ce6960d75801e5f1183-7680d68932e60cdb-full-play.gif">
+    </a>
+  </div>
 
-https://app-web-kmw2ouujgm2ke.azurewebsites.net/
 
 ## Key functionalities
 - Scrape source website and puts information into CosmosDB
