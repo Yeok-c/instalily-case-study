@@ -1,0 +1,6 @@
+name: instalily-chatbot
+services:
+  web:
+    project: ./backend/webapp
+    language: python
+    host: appservice

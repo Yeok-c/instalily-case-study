@@ -23,3 +23,88 @@
   align-items: center;
   height: 60px;
 }
+
+/* Add these styles to the end of the existing CSS file */
+
+/* Product cards styling */
+.product-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.product-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.product-price {
+  font-weight: 600;
+  color: #1b3875;
+}
+
+.product-image {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f9f9f9;
+  padding: 8px;
+}
+
+.product-details {
+  padding: 12px 16px;
+}
+
+.product-details p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.product-link {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 12px;
+  background-color: #1b3875;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.product-link:hover {
+  background-color: #152b5e;
+}
+
+.product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Loading animation */
+.loading:after {
+  content: '...';
+  animation: dots 1.5s steps(5, end) infinite;
+}
+
+@keyframes dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60% { content: '...'; }
+  80%, 100% { content: ''; }
+}

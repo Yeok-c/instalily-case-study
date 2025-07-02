@@ -1,0 +1,101 @@
+Github\Applications_2025\instalily-case-study\backend\webapp\templates\index.html -->
+{% extends 'base.html' %}
+
+{% block script %}
+<script type="text/javascript">
+    $(document).ready(function() {
+        var socket = io('/cosmos-db-nosql', {
+            transports: ['websocket', 'polling']
+        });
+
+        socket.on('connect', function() {});
+        socket.on('new_message', function(data) {
+            console.dir(data.message);
+            if (data.code) {
+                $('#console').append(`<code>${data.message}</code>\n`);
+            } else {
+                $('#console').append(`${data.message}\n`);
+            }
+            // Auto-scroll to bottom
+            $('#console').scrollTop($('#console')[0].scrollHeight);
+        });
+
+        socket.emit('start', {});
+
+        $('#runAgainButton').click(function() {
+            $('#console').empty();
+            socket.emit('start', {});
+        });
+
+        $('#runQueriesButton').click(function() {
+            $('#console').empty();
+            socket.emit('run_queries', {});
+        });
+
+        // Add handler for AI query form
+        $('#aiQueryForm').submit(function(e) {
+            e.preventDefault();
+            const query = $('#queryInput').val().trim();
+            if (query) {
+                $('#console').append(`<strong>Querying AI: "${query}"</strong>\n`);
+                socket.emit('query_ai', { query: query });
+                // Clear the input after sending
+                $('#queryInput').val('');
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<!-- Add AI Query section at the top -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Appliance Knowledge Assistant</h5>
+    </div>
+    <div class="card-body">
+        <form id="aiQueryForm">
+            <div class="input-group">
+                <input type="text" id="queryInput" class="form-control" 
+                       placeholder="Ask about appliance parts or repair..." required>
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-send"></i> Ask
+                </button>
+            </div>
+            <small class="form-text text-muted">
+                Examples: "How do I replace a refrigerator water filter?" or "What parts do I need for a dishwasher repair?"
+            </small>
+        </form>
+    </div>
+</div>
+
+<pre id="console" class="bg-light text-dark fw-light font-monospace mt-2 p-2" style="max-height: 400px; overflow-y: auto;">
+</pre>
+
+<section class="d-flex justify-content-center">
+    <div class="list-group py-2">
+    <button id="runAgainButton" class="list-group-item list-group-item-action active" aria-current="true">
+        <i class="bi bi-arrow-clockwise me-2"></i>
+        Upload Data Again
+    </button>
+    <button id="runQueriesButton" class="list-group-item list-group-item-action">
+        <i class="bi bi-search me-2"></i>
+        Run Queries
+    </button>
+    <a href="https://learn.microsoft.com/azure/cosmos-db/nosql/quickstart-python#code-examples" class="list-group-item list-group-item-action" target="_blank">
+        <i class="bi bi-book me-2"></i>
+        Walk through the code for this sample application
+        <small class="ms-1 align-top">            
+            <i class="bi bi-box-arrow-up-right" style="font-size: 0.65rem;"></i>
+        </small>
+    </a>
+    <a href="https://learn.microsoft.com/azure/cosmos-db/nosql/" class="list-group-item list-group-item-action" target="_blank">
+        <i class="bi bi-lightbulb me-2"></i>
+        Learn more about Azure Cosmos DB for NoSQL
+        <small class="ms-1 align-top">            
+            <i class="bi bi-box-arrow-up-right" style="font-size: 0.65rem;"></i>
+        </small>
+    </a>
+</div>
+</section>
+{% endblock %}
